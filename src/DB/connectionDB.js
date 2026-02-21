@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
+import { DB_URI } from "../../config/config.service.js";
 
 const checkConnectionDB = () => {
   mongoose
-    .connect("mongodb://localhost:27017/sarahaApp")
+    .connect(DB_URI)
     .then(() => {
       console.log("Connected to the database successfully");
     })
