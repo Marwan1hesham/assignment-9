@@ -10,15 +10,11 @@ const userSchema = new mongoose.Schema(
     firstName: {
       type: String,
       required: true,
-      minLength: 3,
-      maxLength: 6,
       trim: true,
     },
     lastName: {
       type: String,
       required: true,
-      minLength: 3,
-      maxLength: 6,
       trim: true,
     },
     email: {
@@ -48,7 +44,10 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(roleEnum),
       default: roleEnum.user,
     },
-    profilePicture: String,
+    profilePicture: {
+      secure_url: { type: String, required: true },
+      public_id: { type: String, required: true },
+    },
     confirmed: Boolean,
     provider: {
       type: String,
