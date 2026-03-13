@@ -5,7 +5,7 @@ import { authorization } from "../../common/middleware/authorization.js";
 import { roleEnum } from "../../common/enum/uesr.enum.js";
 import { multer_host, multer_local } from "../../common/middleware/multer.js";
 import { validation } from "../../common/middleware/validation.js";
-import { signInSchema, signUpSchema } from "./user.validation.js";
+import * as UV from "./user.validation.js";
 import { multerEnum } from "../../common/enum/multer.enum.js";
 
 const userRouter = Router();
@@ -13,14 +13,30 @@ const userRouter = Router();
 userRouter.post(
   "/signup",
   multer_host(multerEnum.image).single("attachment"),
-  validation(signUpSchema),
+  validation(UV.signUpSchema),
   US.signUp,
 );
-
 userRouter.post("/signup/gmail", US.signUpWithGmail);
-userRouter.post("/signin", validation(signInSchema), US.signIn);
+userRouter.post("/signin", validation(UV.signInSchema), US.signIn);
 userRouter.post("/refresh-token", US.tokenRefresh);
-userRouter.get("/getProfile", authentication, US.getProfile);
-userRouter.get("/share-profile/:id", US.shareProfile);
+userRouter.get("/profile", authentication, US.getProfile);
+userRouter.patch(
+  "/update-password",
+  authentication,
+  validation(UV.updatePasswordSchema),
+  US.updatePassword,
+);
+userRouter.patch(
+  "/update-profile",
+  authentication,
+  validation(UV.updateProfileSchema),
+  US.updateProfile,
+);
+userRouter.get(
+  "/share-profile/:id",
+  validation(UV.shareProfileSchema),
+  US.shareProfile,
+);
+userRouter.post("/logout", authentication, US.logout);
 
 export default userRouter;

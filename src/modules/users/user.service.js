@@ -18,6 +18,15 @@ import {
 import * as db_service from "../../DB/db.service.js";
 import userModel from "../../DB/models/user.model.js";
 import { OAuth2Client } from "google-auth-library";
+import { randomUUID } from "crypto";
+import revokeTokenModel from "../../DB/models/revokeToken.model.js";
+import {
+  deleteKey,
+  get,
+  get_key,
+  keys,
+  setValue,
+} from "../../DB/redis/redis.service.js";
 
 export const signUp = async (req, res, next) => {
   const { userName, email, role, cPassword, password, age, gender, phone } =
@@ -121,12 +130,14 @@ export const signIn = async (req, res, next) => {
     throw new Error("invalid email or password", { cause: 400 });
   }
 
+  const jwtid = randomUUID();
+
   const access_token = generateToken({
     payload: { id: user._id, email: user.email },
     secret_key: SECRET_KEY,
     options: {
-      expiresIn: 60,
-      noTimestamp: true,
+      expiresIn: 60 * 10,
+      jwtid,
     },
   });
 
@@ -135,7 +146,7 @@ export const signIn = async (req, res, next) => {
     secret_key: REFRESH_SECRET_KEY,
     options: {
       expiresIn: "1y",
-      noTimestamp: true,
+      jwtid,
     },
   });
 
@@ -187,6 +198,16 @@ export const tokenRefresh = async (req, res, next) => {
 };
 
 export const getProfile = async (req, res, next) => {
+  const key = `profile::${req.user._id}`;
+
+  const userExist = await get(key);
+
+  if (userExist) {
+    return successResponce({ res, data: userExist });
+  }
+
+  await setValue({ key, value: req.user, ttl: 60 });
+
   successResponce({
     res,
     data: { ...req.user._doc, phone: decrypt(req.user.phone) },
@@ -198,7 +219,7 @@ export const shareProfile = async (req, res, next) => {
 
   const user = await db_service.findById({
     model: userModel,
-    filter: { id },
+    filter: { _id: id },
     select: "-password",
   });
 
@@ -209,4 +230,60 @@ export const shareProfile = async (req, res, next) => {
   user.phone = decrypt(user.phone);
 
   successResponce({ res, data: user });
+};
+
+export const updateProfile = async (req, res, next) => {
+  let { firstName, lastName, gender, phone } = req.body;
+
+  if (phone) {
+    phone = encrypt(phone);
+  }
+
+  const user = await db_service.findOneAndUpdate({
+    model: userModel,
+    filter: { _id: req.user._id },
+    update: { firstName, lastName, gender, phone },
+  });
+
+  if (!user) {
+    throw new Error("User not found", { cause: 404 });
+  }
+
+  await deleteKey(`profile::${req.user._id}`);
+
+  successResponce({ res, data: user });
+};
+
+export const updatePassword = async (req, res, next) => {
+  let { oldPassword, newPassword } = req.body;
+
+  if (!Compare({ plainText: oldPassword, cipherText: req.user.password })) {
+    throw new Error("Invalid old password");
+  }
+
+  const hash = Hash({ plainText: newPassword });
+  req.user.password = hash;
+
+  req.user.save();
+
+  successResponce({ res });
+};
+
+export const logout = async (req, res, next) => {
+  const { flag } = req.query;
+
+  if (flag == "all") {
+    req.user.changeCredential = new Date();
+    await req.user.save();
+
+    await deleteKey(await keys(get_key({ userId: req.user._id })));
+  } else {
+    await setValue({
+      key: `revoke_token::${req.user._id}::${req.decoded.jti}`,
+      value: `${req.decoded.jti}`,
+      ttl: req.decoded.exp - Math.floor(Date.now() / 1000),
+    });
+  }
+
+  successResponce({ res });
 };

@@ -29,3 +29,32 @@ export const signInSchema = {
     })
     .required(),
 };
+
+export const shareProfileSchema = {
+  params: joi
+    .object({
+      id: generalRules.id.required(),
+    })
+    .required(),
+};
+
+export const updateProfileSchema = {
+  body: joi
+    .object({
+      firstName: joi.string().min(5).max(40),
+      lastName: joi.string().min(5).max(40),
+      gender: joi.string().valid(...Object.values(genderEnum)),
+      phone: joi.string(),
+    })
+    .required(),
+};
+
+export const updatePasswordSchema = {
+  body: joi
+    .object({
+      newPassword: generalRules.password.required(),
+      cPassword: joi.string().valid(joi.ref("newPassword")),
+      oldPassword: generalRules.password.required(),
+    })
+    .required(),
+};

@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
       public_id: { type: String, required: true },
     },
     confirmed: Boolean,
+    changeCredential: Date,
     provider: {
       type: String,
       enum: Object.values(providerEnum),

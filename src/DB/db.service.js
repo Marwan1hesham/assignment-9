@@ -19,3 +19,16 @@ export const findById = async ({
 } = {}) => {
   return await model.findById(filter).populate(populate).select(select);
 };
+
+export const deleteMany = async ({ model, filter = {} } = {}) => {
+  return await model.deleteMany(filter);
+};
+
+export const findOneAndUpdate = async ({
+  model,
+  filter = {},
+  update = {},
+  options = {},
+} = {}) => {
+  return await model.findOneAndUpdate(filter, update, options);
+};

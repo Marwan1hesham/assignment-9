@@ -16,3 +16,4 @@ export const DB_URI = process.env.DB_URI;
 export const SECRET_KEY = process.env.SECRET_KEY;
 export const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
 export const API_SECRET = process.env.API_SECRET;
+export const REDIS_URL = process.env.REDIS_URL;
