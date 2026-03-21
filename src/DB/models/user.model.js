@@ -50,6 +50,10 @@ const userSchema = new mongoose.Schema(
     },
     confirmed: Boolean,
     changeCredential: Date,
+    twoStepVerification: {
+      type: Boolean,
+      default: false,
+    },
     provider: {
       type: String,
       enum: Object.values(providerEnum),

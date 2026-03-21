@@ -16,27 +16,42 @@ userRouter.post(
   validation(UV.signUpSchema),
   US.signUp,
 );
+
+userRouter.patch(
+  "/confirm-email",
+  validation(UV.confirmEmailSchema),
+  US.confirmEmail,
+);
+
+userRouter.post("/resend-otp", US.resendOtp);
+
 userRouter.post("/signup/gmail", US.signUpWithGmail);
+
 userRouter.post("/signin", validation(UV.signInSchema), US.signIn);
+
+userRouter.post("/confirm-login", US.confirmLogin);
+
+userRouter.post("/enable-2step", authentication, US.enableTwoStep);
+
+userRouter.patch("/confirm-2step", authentication, US.confirmTwoStep);
+
 userRouter.post("/refresh-token", US.tokenRefresh);
+
 userRouter.get("/profile", authentication, US.getProfile);
+
 userRouter.patch(
   "/update-password",
   authentication,
   validation(UV.updatePasswordSchema),
   US.updatePassword,
 );
-userRouter.patch(
-  "/update-profile",
-  authentication,
-  validation(UV.updateProfileSchema),
-  US.updateProfile,
-);
+
 userRouter.get(
   "/share-profile/:id",
   validation(UV.shareProfileSchema),
   US.shareProfile,
 );
+
 userRouter.post("/logout", authentication, US.logout);
 
 export default userRouter;

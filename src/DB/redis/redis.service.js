@@ -8,6 +8,42 @@ export const get_key = ({ userId }) => {
   return `revoke_token::${userId}`;
 };
 
+export const otp_key = ({ email }) => {
+  return `otp::${email}`;
+};
+
+export const max_otp_key = ({ email }) => {
+  return `${otp_key({ email })}::max_tries`;
+};
+
+export const max_login_key = ({ email }) => {
+  return `login::${email}::max_tries`;
+};
+
+export const block_login_key = ({ email }) => {
+  return `login::${email}::blocked`;
+};
+
+export const block_otp_key = ({ email }) => {
+  return `${otp_key({ email })}::block`;
+};
+
+export const two_step_otp_key = ({ email }) => {
+  return `${otp_key({ email })}::two_step`;
+};
+
+export const confirm_two_step_key = ({ email }) => {
+  return `${otp_key({ email })}::confirm_two_step`;
+};
+
+export const forget_password_key = () => {
+  return `otp::forget_password`;
+};
+
+export const email_cache = ({ tempToken }) => {
+  return `email::${tempToken}::confirm_login`;
+};
+
 export const setValue = async ({ key, value, ttl }) => {
   try {
     const data = typeof value == "string" ? value : JSON.stringify(value);
@@ -61,6 +97,14 @@ export const keys = async (pattern) => {
     return redis_client.keys(`${pattern}*`);
   } catch (error) {
     console.log(error, "fail to keys operation");
+  }
+};
+
+export const incr = async (key) => {
+  try {
+    return redis_client.incr(key);
+  } catch (error) {
+    console.log(error, "fail to increment operation");
   }
 };
 

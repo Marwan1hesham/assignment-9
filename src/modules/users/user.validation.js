@@ -21,6 +21,15 @@ export const signUpSchema = {
   }),
 };
 
+export const confirmEmailSchema = {
+  body: joi
+    .object({
+      email: generalRules.email.required(),
+      code: joi.string().regex(/^\d{6}$/).required(),
+    })
+    .required(),
+};
+
 export const signInSchema = {
   body: joi
     .object({
