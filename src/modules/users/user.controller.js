@@ -7,8 +7,11 @@ import { multer_host, multer_local } from "../../common/middleware/multer.js";
 import { validation } from "../../common/middleware/validation.js";
 import * as UV from "./user.validation.js";
 import { multerEnum } from "../../common/enum/multer.enum.js";
+import messageRouter from "../messages/message.controller.js";
 
-const userRouter = Router();
+const userRouter = Router({ caseSensitive: true, strict: true });
+
+userRouter.use("/:userId/messages", messageRouter);
 
 userRouter.post(
   "/signup",

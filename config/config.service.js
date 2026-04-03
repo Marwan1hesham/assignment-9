@@ -19,3 +19,4 @@ export const API_SECRET = process.env.API_SECRET;
 export const REDIS_URL = process.env.REDIS_URL;
 export const EMAIL = process.env.EMAIL;
 export const PASS = process.env.PASS;
+export const WHITE_LIST = process.env.WHITE_LIST?.split(",") || [];

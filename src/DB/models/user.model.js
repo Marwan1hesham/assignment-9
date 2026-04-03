@@ -45,11 +45,13 @@ const userSchema = new mongoose.Schema(
       default: roleEnum.user,
     },
     profilePicture: {
-      secure_url: { type: String, required: true },
-      public_id: { type: String, required: true },
+      secure_url: { type: String },
+      public_id: { type: String },
     },
     confirmed: Boolean,
     changeCredential: Date,
+    token: String,
+    used: Boolean,
     twoStepVerification: {
       type: Boolean,
       default: false,

@@ -16,7 +16,7 @@ export const signUpSchema = {
     .required()
     .with("password", "cPassword"),
 
-  file: generalRules.file.required().messages({
+  file: generalRules.file.messages({
     "any.required": "file is required",
   }),
 };
@@ -25,7 +25,10 @@ export const confirmEmailSchema = {
   body: joi
     .object({
       email: generalRules.email.required(),
-      code: joi.string().regex(/^\d{6}$/).required(),
+      code: joi
+        .string()
+        .regex(/^\d{6}$/)
+        .required(),
     })
     .required(),
 };
@@ -54,6 +57,14 @@ export const updateProfileSchema = {
       lastName: joi.string().min(5).max(40),
       gender: joi.string().valid(...Object.values(genderEnum)),
       phone: joi.string(),
+    })
+    .required(),
+};
+
+export const forgetPasswordSchema = {
+  body: joi
+    .object({
+      email: generalRules.email.required(),
     })
     .required(),
 };

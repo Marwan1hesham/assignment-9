@@ -18,15 +18,13 @@ import {
 import * as db_service from "../../DB/db.service.js";
 import userModel from "../../DB/models/user.model.js";
 import { LoginTicket, OAuth2Client } from "google-auth-library";
-import { randomUUID } from "crypto";
-import revokeTokenModel from "../../DB/models/revokeToken.model.js";
+import { randomBytes, randomUUID } from "crypto";
 import {
   block_login_key,
   block_otp_key,
   confirm_two_step_key,
   deleteKey,
   email_cache,
-  forget_password_key,
   get,
   get_key,
   incr,
@@ -39,15 +37,57 @@ import {
   two_step_otp_key,
 } from "../../DB/redis/redis.service.js";
 import { generateOtp, sendEmail } from "../../common/utils/email/send.email.js";
+import { emailTemplate } from "../../common/utils/email/email.template.js";
+import { eventEmitter } from "../../common/utils/email/email.events.js";
+import { emailEnum } from "../../common/enum/email.enum.js";
+
+const sendEmailOtp = async ({ email, subject }) => {
+  const isBlocked = await ttl(block_otp_key({ email }));
+  if (isBlocked > 0) {
+    throw new Error(
+      `You are blocked, please try again after ${isBlocked} seconds`,
+    );
+  }
+
+  const otpTTl = await ttl(otp_key({ email, subject }));
+  if (otpTTl > 0) {
+    throw new Error(`You can resend otp after ${ttl} seconds`);
+  }
+
+  const maxOtp = await get(max_otp_key({ email }));
+  if (maxOtp >= 3) {
+    await setValue({ key: block_otp_key({ email }), value: 1, ttl: 60 });
+    throw new Error("You have exceeded the maximum number of tries");
+  }
+
+  const otp = await generateOtp();
+  eventEmitter.emit(emailEnum.confirmEmail, async () => {
+    await sendEmail({
+      to: email,
+      subject: "Welcome to Saraha App",
+      html: emailTemplate(otp),
+    });
+  });
+
+  await setValue({
+    key: otp_key({ email, subject }),
+    value: Hash({ plainText: `${otp}` }),
+    ttl: 60 * 2,
+  });
+
+  await incr(max_otp_key({ email }));
+};
 
 export const signUp = async (req, res, next) => {
   const { userName, email, role, cPassword, password, age, gender, phone } =
     req.body;
 
-  const { public_id, secure_url } = await cloudinary.uploader.upload(
-    req.file.path,
-    { folder: "sarahaApp" },
-  );
+  if (req.file) {
+    var { public_id, secure_url } = await cloudinary.uploader.upload(
+      req.file.path,
+      { folder: "sarahaApp" },
+    );
+  }
 
   if (await db_service.findOne({ model: userModel, filter: { email } })) {
     throw new Error("Email already exists", { cause: 409 });
@@ -78,11 +118,11 @@ export const signUp = async (req, res, next) => {
   await sendEmail({
     to: email,
     subject: "Welcome to Saraha App",
-    html: `<h1>your confirmation code is: ${otp}</h1>`,
+    html: emailTemplate(otp),
   });
 
   await setValue({
-    key: otp_key({ email }),
+    key: otp_key({ email, subject: emailEnum.confirmEmail }),
     value: Hash({ plainText: `${otp}` }),
     ttl: 60 * 2,
   });
@@ -143,38 +183,63 @@ export const resendOtp = async (req, res, next) => {
     throw new Error("User not found or already confirmed", { cause: 404 });
   }
 
-  const isBlocked = await ttl(block_otp_key({ email }));
-  if (isBlocked > 0) {
-    throw new Error(
-      `You are blocked, please try again after ${isBlocked} seconds`,
-    );
-  }
+  await sendEmailOtp({ email, subject: emailEnum.confirmEmail });
 
-  const otpTTl = await ttl(otp_key({ email }));
-  if (otpTTl > 0) {
-    throw new Error(`You can resend otp after ${ttl} seconds`);
-  }
+  successResponce({ res });
+};
 
-  const maxOtp = await get(max_otp_key({ email }));
-  if (maxOtp >= 3) {
-    await setValue({ key: block_otp_key({ email }), value: 1, ttl: 60 });
-    throw new Error("You have exceeded the maximum number of tries");
-  }
+export const forgetPassword = async (req, res, next) => {
+  const { email } = req.body;
 
-  const otp = await generateOtp();
-  await sendEmail({
-    to: user.email,
-    subject: "Welcome to Saraha App",
-    html: `<h1>your confirmation code is: ${otp}</h1>`,
+  const user = await db_service.findOne({
+    model: userModel,
+    filter: {
+      email,
+      confirmed: { $exists: true },
+      provider: providerEnum.system,
+    },
   });
 
-  await setValue({
-    key: otp_key({ email }),
-    value: Hash({ plainText: `${otp}` }),
-    ttl: 60 * 2,
+  if (!user) {
+    throw new Error("User not found or already confirmed", { cause: 404 });
+  }
+
+  await sendEmailOtp({ email, subject: emailEnum.forgetPassword });
+  successResponce({ res });
+};
+
+export const resetPassword = async (req, res, next) => {
+  const { email, code, password } = req.body;
+
+  const otpValue = await get(
+    otp_key({ email, subject: emailEnum.forgetPassword }),
+  );
+  if (!otpValue) {
+    throw new Error("Otp expired");
+  }
+
+  if (!Compare({ plainText: code, cipherText: otpValue })) {
+    throw new Error("Invalid otp");
+  }
+
+  const user = await db_service.findOneAndUpdate({
+    model: userModel,
+    filter: {
+      email,
+      confirmed: { $exists: true },
+      provider: providerEnum.system,
+    },
+    update: {
+      password: Hash({ plainText: password }),
+      changeCredential: new Date(),
+    },
   });
 
-  await incr(max_otp_key({ email }));
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  await deleteKey(otp_key({ email, subject: emailEnum.forgetPassword }));
 
   successResponce({ res });
 };

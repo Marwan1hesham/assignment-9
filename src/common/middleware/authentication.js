@@ -1,6 +1,5 @@
 import { SECRET_KEY } from "../../../config/config.service.js";
 import * as db_service from "../../DB/db.service.js";
-import revokeTokenModel from "../../DB/models/revokeToken.model.js";
 import userModel from "../../DB/models/user.model.js";
 import { get, revoke_key } from "../../DB/redis/redis.service.js";
 import { verifyToken } from "../utils/token.service.js";

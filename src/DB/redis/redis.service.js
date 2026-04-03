@@ -8,8 +8,8 @@ export const get_key = ({ userId }) => {
   return `revoke_token::${userId}`;
 };
 
-export const otp_key = ({ email }) => {
-  return `otp::${email}`;
+export const otp_key = ({ email, subject }) => {
+  return `otp::${email}::${subject}`;
 };
 
 export const max_otp_key = ({ email }) => {
