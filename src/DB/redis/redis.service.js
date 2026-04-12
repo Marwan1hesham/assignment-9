@@ -12,8 +12,8 @@ export const otp_key = ({ email, subject }) => {
   return `otp::${email}::${subject}`;
 };
 
-export const max_otp_key = ({ email }) => {
-  return `${otp_key({ email })}::max_tries`;
+export const max_otp_key = ({ email, subject }) => {
+  return `${otp_key({ email, subject })}::max_tries`;
 };
 
 export const max_login_key = ({ email }) => {
@@ -24,16 +24,16 @@ export const block_login_key = ({ email }) => {
   return `login::${email}::blocked`;
 };
 
-export const block_otp_key = ({ email }) => {
-  return `${otp_key({ email })}::block`;
+export const block_otp_key = ({ email, subject }) => {
+  return `${otp_key({ email, subject })}::block`;
 };
 
-export const two_step_otp_key = ({ email }) => {
-  return `${otp_key({ email })}::two_step`;
+export const two_step_otp_key = ({ email, subject }) => {
+  return `${otp_key({ email, subject })}::two_step`;
 };
 
-export const confirm_two_step_key = ({ email }) => {
-  return `${otp_key({ email })}::confirm_two_step`;
+export const confirm_two_step_key = ({ email, subject }) => {
+  return `${otp_key({ email, subject })}::confirm_two_step`;
 };
 
 export const forget_password_key = () => {

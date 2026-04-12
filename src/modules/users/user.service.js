@@ -42,7 +42,7 @@ import { eventEmitter } from "../../common/utils/email/email.events.js";
 import { emailEnum } from "../../common/enum/email.enum.js";
 
 const sendEmailOtp = async ({ email, subject }) => {
-  const isBlocked = await ttl(block_otp_key({ email }));
+  const isBlocked = await ttl(block_otp_key({ email, subject }));
   if (isBlocked > 0) {
     throw new Error(
       `You are blocked, please try again after ${isBlocked} seconds`,
@@ -54,9 +54,10 @@ const sendEmailOtp = async ({ email, subject }) => {
     throw new Error(`You can resend otp after ${ttl} seconds`);
   }
 
-  const maxOtp = await get(max_otp_key({ email }));
+  const maxOtp = await get(max_otp_key({ email, subject }));
   if (maxOtp >= 3) {
-    await setValue({ key: block_otp_key({ email }), value: 1, ttl: 60 });
+    await setValue({ key: block_otp_key({ email, subject }), value: 1, ttl: 60 });
+    await deleteKey(max_otp_key({ email, subject }));
     throw new Error("You have exceeded the maximum number of tries");
   }
 
@@ -75,7 +76,7 @@ const sendEmailOtp = async ({ email, subject }) => {
     ttl: 60 * 2,
   });
 
-  await incr(max_otp_key({ email }));
+  await incr(max_otp_key({ email, subject }));
 };
 
 export const signUp = async (req, res, next) => {
@@ -128,7 +129,7 @@ export const signUp = async (req, res, next) => {
   });
 
   await setValue({
-    key: max_otp_key({ email }),
+    key: max_otp_key({ email, subject: emailEnum.confirmEmail }),
     value: 1,
     ttl: 60,
   });
@@ -139,7 +140,9 @@ export const signUp = async (req, res, next) => {
 export const confirmEmail = async (req, res, next) => {
   const { email, code } = req.body;
 
-  const otpValue = await get(otp_key({ email }));
+  const otpValue = await get(
+    otp_key({ email, subject: emailEnum.confirmEmail }),
+  );
   if (!otpValue) {
     throw new Error("Otp expired");
   }
